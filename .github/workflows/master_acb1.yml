@@ -45,7 +45,7 @@ jobs:
           name: actual-crdt
           path: packages/crdt/actual-crdt.tgz
 
-    web:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
