@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - acb1
+name: Build and deploy Node.js app to Azure Web App - acb2
 
 on:
   push:
@@ -17,30 +17,70 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.x'
-
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
-
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment job
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Build API
+        run: cd packages/api && yarn build
+      - name: Create package tgz
+        run: cd packages/api && yarn pack && mv package.tgz actual-api.tgz
+      - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: release.zip
+          name: actual-api
+          path: packages/api/actual-api.tgz
+
+  crdt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Build CRDT
+        run: cd packages/crdt && yarn build
+      - name: Create package tgz
+        run: cd packages/crdt && yarn pack && mv package.tgz actual-crdt.tgz
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-crdt
+          path: packages/crdt/actual-crdt.tgz
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Build Web
+        run: ./bin/package-browser
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-web
+          path: packages/desktop-client/build
+      - name: Upload Build Stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-stats
+          path: packages/desktop-client/build-stats
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Build Server
+        run: cd packages/sync-server && yarn build
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-server
+          path: packages/sync-server/build
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [web]
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -52,10 +92,8 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: actual-web
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -63,7 +101,6 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_28C4EC8586384A779FFBA91247601F8E }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_944FBFA2B342480EA0668E63732AE26D }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8840E6E232BF4B67878F2AB1BB69AB57 }}
-
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
