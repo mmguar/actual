@@ -96,6 +96,7 @@ jobs:
 
       - name: Zip artifact
         run: zip -r release.zip
+        path: .
 
       
       - name: Login to Azure
