@@ -108,5 +108,5 @@ jobs:
         with:
           app-name: 'acb1'
           slot-name: 'Production'
-          package: release.zip
+          package: .
           
