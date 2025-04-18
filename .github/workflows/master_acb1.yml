@@ -80,7 +80,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [web]
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -92,10 +92,11 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: sync-server
+          name: actual-web
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
+      - name: Zip artifact
+        run: zip -r release.zip
+
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -108,7 +109,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'acb2'
+          app-name: 'acb1'
           slot-name: 'Production'
-          package: .
+          package: release.zip
           
